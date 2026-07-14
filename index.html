@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>🎲 DE&I 組織シミュレーター</title>
+<style>
+  :root{
+    --navy:#1B224C;
+    --ink:#1c1c28;
+    --sub:#55556b;
+    --bg:#eef0f5;
+    --card:#ffffff;
+    --line:#d4d7e2;
+    --safe:#1b7f3b;
+    --safe-bg:#eaf6ec;
+    --risk:#c62828;
+    --risk-bg:#fdeeee;
+    --focus:#0b62d6;
+    --chip-recruit:#0b5394;
+    --chip-shield:#1b7f3b;
+    --chip-promote:#8e3db8;
+    --chip-power:#b3541e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{font-size:17px;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Helvetica Neue','Hiragino Kaku Gothic ProN','ヒラギノ角ゴ ProN W3','Yu Gothic',sans-serif;
+    line-height:1.5;
+  }
+  button{font-family:inherit;}
+  .wrap{max-width:680px; margin:0 auto; padding:0 12px 90px;}
+  header.app{
+    background:var(--navy); color:#fff; padding:12px 16px;
+    text-align:center;
+  }
+  header.app h1{font-size:1.2rem; margin:0; font-weight:700; letter-spacing:.02em;}
+
+  /* ===== スコアボード ===== */
+  .board-sticky{position:sticky; top:0; z-index:50; background:var(--bg); padding:10px 0 0;}
+  .board{
+    background:var(--card); border-radius:14px; box-shadow:0 2px 10px rgba(27,34,76,.14);
+    padding:10px 12px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px 6px;
+    border:1px solid var(--line);
+  }
+  .b-item{text-align:center; min-width:0;}
+  .b-label{font-size:.72rem; color:var(--sub); font-weight:600; white-space:nowrap;}
+  .b-value{font-size:1.15rem; font-weight:700; line-height:1.25; word-break:keep-all;}
+  .b-value.big{font-size:1.7rem; color:var(--navy);}
+  .b-value .unit{font-size:.75rem; font-weight:600; color:var(--sub);}
+  .b-icons{font-size:1.05rem; letter-spacing:2px;}
+  .b-none{color:#9a9ab0; font-weight:500;}
+
+  /* ===== タブ ===== */
+  .tabs{display:flex; gap:6px; margin:10px 0; padding-bottom:8px;}
+  .tab{
+    flex:1; min-height:48px; border-radius:12px; border:2px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:.95rem; font-weight:700;
+    cursor:pointer;
+  }
+  .tab[aria-selected="true"]{background:var(--navy); border-color:var(--navy); color:#fff;}
+  .tab:focus-visible, button:focus-visible, .sel-card:focus-visible{outline:3px solid var(--focus); outline-offset:2px;}
+
+  /* ===== フィルタチップ ===== */
+  .filters{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 12px;}
+  .fchip{
+    border:2px solid var(--line); background:var(--card); border-radius:999px;
+    padding:8px 12px; font-size:.85rem; font-weight:600; cursor:pointer; min-height:40px;
+  }
+  .fchip[aria-pressed="true"]{background:var(--navy); color:#fff; border-color:var(--navy);}
+
+  /* ===== 選択カード（施策・メンバー共通） ===== */
+  .sel-card{
+    width:100%; text-align:left; background:var(--card); border:2px solid var(--line);
+    border-radius:12px; padding:10px 12px; margin-bottom:8px; cursor:pointer;
+    display:flex; align-items:flex-start; gap:10px; min-height:56px;
+  }
+  .sel-card.on{border-color:var(--navy); background:#eef1fb; box-shadow:0 0 0 1px var(--navy) inset;}
+  .ckbox{
+    flex:0 0 26px; width:26px; height:26px; border:2px solid #8a8fa8; border-radius:7px;
+    display:flex; align-items:center; justify-content:center; margin-top:2px;
+    font-size:18px; color:#fff; background:#fff;
+  }
+  .sel-card.on .ckbox{background:var(--navy); border-color:var(--navy);}
+  .sel-main{flex:1; min-width:0;}
+  .sel-name{font-weight:700; font-size:1rem;}
+  .sel-sub{font-size:.82rem; color:var(--sub); margin-top:2px; display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center;}
+  .attr{white-space:nowrap;}
+  .chip{
+    display:inline-block; font-size:.72rem; font-weight:700; border-radius:5px;
+    padding:2px 6px; color:#fff; white-space:nowrap;
+  }
+  .chip.recruit{background:var(--chip-recruit);}
+  .chip.shield{background:var(--chip-shield);}
+  .chip.promote{background:var(--chip-promote);}
+  .chip.power{background:var(--chip-power);}
+  .chip.cost{background:#555a75;}
+  .chip.base{background:#e8eaf3; color:var(--navy); border:1px solid var(--line);}
+  .state-join{font-size:.75rem; font-weight:700; color:var(--safe);}
+  .state-can{font-size:.75rem; font-weight:700; color:var(--chip-recruit);}
+
+  .note{
+    background:#fff8e6; border:1px solid #e6cf8a; border-radius:10px;
+    padding:10px 12px; font-size:.88rem; margin:8px 0;
+  }
+  .note.blue{background:#e9f2fd; border-color:#a9c8ee;}
+
+  /* ===== 組織ビュー ===== */
+  .m-card{
+    background:var(--card); border-radius:12px; padding:10px 12px; margin-bottom:8px;
+    border:1px solid var(--line); border-left:7px solid var(--line);
+  }
+  .m-card.safe{border-left-color:var(--safe); background:var(--safe-bg);}
+  .m-card.risk{border-left-color:var(--risk); background:var(--risk-bg);}
+  .m-card.boss{border-left-color:var(--navy); background:#eef1fb;}
+  .m-top{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .m-status{font-weight:800; font-size:.85rem;}
+  .m-card.safe .m-status{color:var(--safe);}
+  .m-card.risk .m-status{color:var(--risk);}
+  .m-card.boss .m-status{color:var(--navy);}
+  .m-power{font-weight:800; font-size:1.05rem; color:var(--navy); white-space:nowrap;}
+  .m-name{font-weight:700; font-size:1.05rem; margin-top:2px;}
+  .m-foot{
+    border-top:1px dashed var(--line); margin-top:6px; padding-top:6px;
+    font-size:.85rem; font-weight:700; text-align:right;
+  }
+  .m-card.safe .m-foot{color:var(--safe);}
+  .m-card.risk .m-foot{color:var(--risk);}
+  .m-card.boss .m-foot{color:var(--navy);}
+  .dice-tag{
+    display:inline-block; background:#fff; border:1.5px solid var(--risk); color:var(--risk);
+    border-radius:6px; padding:1px 7px; margin-left:4px; font-weight:800;
+  }
+
+  h2.sec{font-size:1.02rem; margin:18px 0 8px; color:var(--navy);}
+  details.dice{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px 12px; margin:10px 0;}
+  details.dice summary{font-weight:700; cursor:pointer; min-height:40px; display:flex; align-items:center;}
+  .dice-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px;}
+  .dice-cell{background:var(--bg); border-radius:9px; padding:8px 4px; text-align:center; font-size:.82rem; font-weight:600;}
+  .dice-cell .n{font-size:1.15rem; font-weight:800; color:var(--navy); display:block;}
+
+  /* ===== フェーズA ===== */
+  .startbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:60;
+    background:rgba(238,240,245,.96); padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);
+  }
+  .btn-primary{
+    display:block; width:100%; max-width:652px; margin:0 auto; min-height:54px;
+    background:var(--navy); color:#fff; border:none; border-radius:14px;
+    font-size:1.05rem; font-weight:800; cursor:pointer;
+  }
+  .btn-primary:disabled{background:#a7abc4; cursor:not-allowed;}
+  .btn-ghost{
+    background:var(--card); border:2px solid var(--line); color:var(--sub);
+    border-radius:10px; padding:9px 14px; font-size:.85rem; font-weight:700; cursor:pointer; min-height:44px;
+  }
+  .toolbar{display:flex; justify-content:space-between; align-items:center; gap:8px; margin:14px 0 40px;}
+  .count-note{font-size:.9rem; font-weight:700; color:var(--navy); margin:8px 0;}
+  .legend{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; margin:10px 0; font-size:.85rem;
+  }
+  .legend b{color:var(--navy);}
+  .hidden{display:none !important;}
+  @media (min-width:520px){
+    .board{grid-template-columns:repeat(6,1fr);}
+    .dice-grid{grid-template-columns:repeat(6,1fr);}
+  }
+</style>
+</head>
+<body>
+<header class="app"><h1>🎲 DE&amp;I 組織シミュレーター</h1></header>
+<div class="wrap">
+
+  <!-- スコアボード -->
+  <div class="board-sticky" id="boardSticky">
+    <div class="board" id="board" role="status" aria-label="スコアボード"></div>
+    <div class="tabs" id="tabs" role="tablist"></div>
+  </div>
+
+  <!-- フェーズA -->
+  <section id="phaseA">
+    <div class="note blue"><b>Step 1：</b>初期人財カード（8名）から、最初のメンバーを <b>2名</b> 選んでください。</div>
+    <div class="count-note" id="pickCount"></div>
+    <div id="initList"></div>
+  </section>
+
+  <!-- フェーズB -->
+  <section id="phaseB" class="hidden">
+    <div id="pane-policy" role="tabpanel">
+      <div class="legend">
+        タグの意味：<span class="chip recruit">採用</span> 対象属性を採用可能に
+        <span class="chip shield">離職防止</span> 対象属性を守る
+        <span class="chip promote">昇進</span> 昇進対象
+        <span class="chip power">力+n</span> 対象メンバーの仕事力加算
+        <span class="chip cost">コスト</span> 施策の実行コスト
+      </div>
+      <div class="filters" id="polFilters" aria-label="施策の属性フィルタ"></div>
+      <div id="polList"></div>
+    </div>
+
+    <div id="pane-member" role="tabpanel" class="hidden">
+      <div class="note" id="memberNote"></div>
+      <div class="filters" id="memFilters" aria-label="メンバーの属性フィルタ"></div>
+      <div id="memList"></div>
+    </div>
+
+    <div id="pane-org" role="tabpanel" class="hidden">
+      <details class="dice">
+        <summary>🎲 サイコロの出目対応表</summary>
+        <div class="dice-grid" id="diceGrid"></div>
+      </details>
+      <h2 class="sec">📊 組織メンバー</h2>
+      <div id="orgList"></div>
+      <h2 class="sec" id="polSecTitle">🛠️ 実行中の施策</h2>
+      <div id="orgPolicies"></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn-ghost" id="btnClearPol">施策の選択をすべて解除</button>
+      <button class="btn-ghost" id="btnReset">🔄 はじめから</button>
+    </div>
+  </section>
+</div>
+
+<div class="startbar hidden" id="startBar">
+  <button class="btn-primary" id="btnStart" disabled>🚀 この2名でスタート！</button>
+</div>
+
+<script>
+"use strict";
+/* =========================================================
+   1. データ定義（元の Streamlit 版と完全に同一）
+========================================================= */
+const SORT_ORDER = ["💚","📖","🌏","🌈","⚖️"];
+const ATTR = {
+  "💚":{label:"くらし", dice:2},
+  "📖":{label:"キャリア", dice:3},
+  "🌏":{label:"グローバル", dice:4},
+  "🌈":{label:"アイデンティティ", dice:5},
+  "⚖️":{label:"フェア", dice:6}
+};
+const TYPE_LABEL = {recruit:"採用", shield:"離職防止", promote:"昇進", power:"力"};
+
+const INITIAL_CHARACTERS = [
+  {name:"結城 奏太", icons:["💚","🌈"], base:2},
+  {name:"柊 凛花", icons:["📖","⚖️"], base:2},
+  {name:"神崎 剣也", icons:["🌏"], base:2},
+  {name:"桜庭 美月", icons:["💚","📖"], base:2},
+  {name:"天道 翔", icons:["💚","🌏"], base:2},
+  {name:"橘 沙織", icons:["📖","🌈"], base:2},
+  {name:"Leon Heartfield", icons:["🌏","⚖️"], base:2},
+  {name:"Elena", icons:["🌈","⚖️"], base:2}
+];
+
+const CHARACTERS_DB = [
+  {name:"本田 琴音", icons:["💚"], base:1},
+  {name:"浜田 佑香", icons:["💚"], base:1},
+  {name:"白石 凛子", icons:["💚"], base:1},
+  {name:"石田 紅葉", icons:["💚"], base:1},
+  {name:"山田 隼人", icons:["💚"], base:1},
+  {name:"佐伯 啓", icons:["💚"], base:2},
+  {name:"池田 悠真", icons:["💚"], base:2},
+  {name:"加藤 ひかる", icons:["💚"], base:2},
+  {name:"大野 未来", icons:["💚"], base:2},
+  {name:"谷口 実央", icons:["💚"], base:3},
+  {name:"鈴木 翔太", icons:["💚"], base:3},
+  {name:"木村 拓海", icons:["💚"], base:3},
+  {name:"藤田 陽", icons:["💚"], base:4},
+  {name:"佐々木 真央", icons:["💚"], base:4},
+  {name:"川瀬 美羽", icons:["💚"], base:5},
+  {name:"井上 菜々", icons:["📖"], base:1},
+  {name:"神田 亮", icons:["📖"], base:1},
+  {name:"橋本 紗季", icons:["📖"], base:1},
+  {name:"吉田 玲奈", icons:["📖"], base:1},
+  {name:"池上 直樹", icons:["📖"], base:1},
+  {name:"原 真子", icons:["📖"], base:2},
+  {name:"宮本 蒼真", icons:["📖"], base:2},
+  {name:"中村 さくら", icons:["📖"], base:2},
+  {name:"竹内 智也", icons:["📖"], base:2},
+  {name:"杉本 麻衣", icons:["📖"], base:3},
+  {name:"上田 翔", icons:["📖"], base:3},
+  {name:"斎藤 陽介", icons:["📖"], base:3},
+  {name:"中島 慎也", icons:["📖"], base:4},
+  {name:"島田 こはる", icons:["📖"], base:4},
+  {name:"村上 拓人", icons:["📖"], base:5},
+  {name:"An Nguyen", icons:["🌏"], base:1},
+  {name:"Liam O'Connor", icons:["🌏"], base:1},
+  {name:"Carlos Souza", icons:["🌏"], base:1},
+  {name:"Hanna Schmidt", icons:["🌏"], base:1},
+  {name:"Ava Chen", icons:["🌏"], base:1},
+  {name:"Mei Tanaka", icons:["🌏"], base:2},
+  {name:"Alec Tan", icons:["🌏"], base:2},
+  {name:"Lucas Pereira", icons:["🌏"], base:2},
+  {name:"Ethan Wang", icons:["🌏"], base:2},
+  {name:"Minh Tran", icons:["🌏"], base:3},
+  {name:"Olga Petrov", icons:["🌏"], base:3},
+  {name:"Priya Singh", icons:["🌏"], base:3},
+  {name:"Julia Novak", icons:["🌏"], base:4},
+  {name:"Hyejin Park", icons:["🌏"], base:4},
+  {name:"Sergey Ivanov", icons:["🌏"], base:5},
+  {name:"長井 智哉", icons:["🌈"], base:1},
+  {name:"佐藤 陽菜", icons:["🌈"], base:1},
+  {name:"田村 結菜", icons:["🌈"], base:1},
+  {name:"内田 隼", icons:["🌈"], base:1},
+  {name:"宮下 慧", icons:["🌈"], base:1},
+  {name:"石井 直人", icons:["🌈"], base:2},
+  {name:"花田 里緒", icons:["🌈"], base:2},
+  {name:"岡本 さとみ", icons:["🌈"], base:2},
+  {name:"田辺 海斗", icons:["🌈"], base:2},
+  {name:"Sofia García", icons:["🌈"], base:3},
+  {name:"柴田 悠斗", icons:["🌈"], base:3},
+  {name:"茅野 すみれ", icons:["🌈"], base:3},
+  {name:"松本 直哉", icons:["🌈"], base:4},
+  {name:"森 真由", icons:["🌈"], base:4},
+  {name:"遠藤 大地", icons:["🌈"], base:5},
+  {name:"藤川 佑", icons:["⚖️"], base:1},
+  {name:"伊藤 葵", icons:["⚖️"], base:1},
+  {name:"磯部 瞳", icons:["⚖️"], base:1},
+  {name:"工藤 彩花", icons:["⚖️"], base:1},
+  {name:"渡辺 結衣", icons:["⚖️"], base:1},
+  {name:"長谷川 凛", icons:["⚖️"], base:2},
+  {name:"林 佳奈", icons:["⚖️"], base:2},
+  {name:"新井 美月", icons:["⚖️"], base:2},
+  {name:"原田 怜", icons:["⚖️"], base:2},
+  {name:"野村 智", icons:["⚖️"], base:3},
+  {name:"山根 悠", icons:["⚖️"], base:3},
+  {name:"平野 健太", icons:["⚖️"], base:3},
+  {name:"大西 悠", icons:["⚖️"], base:4},
+  {name:"山崎 優斗", icons:["⚖️"], base:4},
+  {name:"中原 玲央", icons:["⚖️"], base:5},
+  {name:"安藤 望", icons:["💚","📖"], base:2},
+  {name:"山口 咲良", icons:["💚","🌏"], base:4},
+  {name:"近藤 海斗", icons:["💚","🌈"], base:5},
+  {name:"阿部 千尋", icons:["💚","⚖️"], base:1},
+  {name:"田中 蓮", icons:["💚","⚖️"], base:1},
+  {name:"Amira Hassan", icons:["📖","🌏"], base:4},
+  {name:"山本 大翔", icons:["📖","🌈"], base:5},
+  {name:"高橋 美咲", icons:["📖","⚖️"], base:2},
+  {name:"望月 さや", icons:["📖","⚖️"], base:3},
+  {name:"三浦 真琴", icons:["🌏","🌈"], base:2},
+  {name:"Daniel Kim", icons:["🌏","🌈"], base:4},
+  {name:"青木 里奈", icons:["🌏","⚖️"], base:3},
+  {name:"杉浦 颯太", icons:["🌏","⚖️"], base:5},
+  {name:"片山 駿", icons:["🌈","⚖️"], base:1},
+  {name:"金子 拓真", icons:["🌈","⚖️"], base:3},
+  {name:"Noor Rahman", icons:["💚","📖","🌏"], base:4},
+  {name:"藤田 陽葵", icons:["💚","📖","🌈"], base:4},
+  {name:"Zoe Müller", icons:["💚","📖","⚖️"], base:2},
+  {name:"町田 柚希", icons:["💚","🌏","🌈"], base:3},
+  {name:"Wang Ava", icons:["💚","🌏","⚖️"], base:1},
+  {name:"加藤 佳奈", icons:["💚","🌈","⚖️"], base:5},
+  {name:"清水 友香", icons:["📖","🌏","🌈"], base:1},
+  {name:"佐藤 紗季", icons:["📖","🌏","⚖️"], base:5},
+  {name:"川口 由衣", icons:["📖","🌈","⚖️"], base:3},
+  {name:"Juan Martínez", icons:["🌏","🌈","⚖️"], base:2}
+];
+
+const POLICIES_DB = [
+  {name:"短時間勤務", target:["💚"], cost:2, power:2, type:["recruit","shield","power"]},
+  {name:"ケア支援（保育/介護補助）", target:["💚"], cost:2, power:2, type:["recruit","shield","power"]},
+  {name:"ユニーバーサルデザインサポート", target:["💚"], cost:2, power:2, type:["shield","power"]},
+  {name:"各種申請ガイド＆相談窓口", target:["💚"], cost:1, power:0, type:["recruit","shield"]},
+  {name:"男性育休", target:["💚"], cost:2, power:0, type:["recruit","promote","shield"]},
+  {name:"転勤支援", target:["🌏"], cost:1, power:0, type:["recruit","shield"]},
+  {name:"就労在留支援", target:["🌏"], cost:1, power:0, type:["recruit","shield"]},
+  {name:"LGBTQ+アライコミュニティ", target:["🌈"], cost:2, power:0, type:["recruit","promote","shield"]},
+  {name:"指導員制度", target:["🌈"], cost:2, power:2, type:["promote","power"]},
+  {name:"清和会", target:["⚖️"], cost:1, power:0, type:["shield"]},
+  {name:"ウェルビーイング表彰", target:["💚","🌈"], cost:2, power:2, type:["recruit","shield","power"]},
+  {name:"メンター制度", target:["💚","📖"], cost:2, power:1, type:["promote","shield","power"]},
+  {name:"リターンシップ(復職支援)", target:["💚","📖"], cost:2, power:0, type:["recruit","promote"]},
+  {name:"復帰ブリッジ（育休/介護）", target:["💚","📖"], cost:1, power:1, type:["promote","shield","power"]},
+  {name:"テレワーク・ワーケーション制度", target:["💚","🌏"], cost:1, power:1, type:["recruit","shield","power"]},
+  {name:"多言語対応", target:["💚","🌏"], cost:2, power:2, type:["recruit","power"]},
+  {name:"サテライト/在宅手当", target:["💚","🌏"], cost:1, power:1, type:["recruit","shield","power"]},
+  {name:"障がい者インクルージョンコミュニティ", target:["💚","🌈"], cost:2, power:0, type:["promote","shield"]},
+  {name:"通勤交通費支給", target:["💚","⚖️"], cost:1, power:0, type:["recruit"]},
+  {name:"1on1", target:["📖","🌏"], cost:2, power:3, type:["shield","power"]},
+  {name:"アルムナイ/ブーメラン採用", target:["📖","🌏"], cost:1, power:0, type:["recruit","shield"]},
+  {name:"グローバルタレントマネジメント", target:["🌏"], cost:3, power:3, type:["recruit","promote","shield","power"]},
+  {name:"社内公募・FA制度", target:["📖","🌈"], cost:2, power:1, type:["promote","shield","power"]},
+  {name:"アンコンシャス・バイアス研修", target:["📖","🌈"], cost:2, power:0, type:["recruit","shield"]},
+  {name:"DVO(DNP価値目標制度)制度と評価制度", target:["📖","⚖️"], cost:1, power:0, type:["recruit","promote"]},
+  {name:"キャリア自律支援金の支給", target:["📖","⚖️"], cost:3, power:3, type:["promote","power"]},
+  {name:"職群別キャリア・スキルマップの可視化", target:["📖","⚖️"], cost:1, power:1, type:["promote","power"]},
+  {name:"社内複業制度", target:["📖","⚖️"], cost:3, power:3, type:["recruit","promote","power"]},
+  {name:"同性パートナーシップ制度", target:["🌈","⚖️"], cost:1, power:0, type:["recruit","promote","shield"]},
+  {name:"スポンサーシッププログラム", target:["🌈","⚖️"], cost:1, power:0, type:["promote"]},
+  {name:"面接官トレーニング", target:["🌈","⚖️"], cost:1, power:0, type:["recruit","promote"]},
+  {name:"インクルージョンループ", target:["🌈","⚖️"], cost:3, power:3, type:["promote","shield","power"]},
+  {name:"キャリアサポート休暇・ライフサポート休暇", target:["🌈","⚖️"], cost:2, power:1, type:["shield","power"]},
+  {name:"施設（社員食堂、診療所、契約保養施設等）の充実", target:["🌈","⚖️"], cost:2, power:0, type:["recruit","shield"]},
+  {name:"マネジメントフィードバック（360度評価）", target:["🌈","⚖️"], cost:1, power:0, type:["promote","shield"]},
+  {name:"ミドル・シニア向けキャリア自律支援", target:["💚","📖","⚖️"], cost:2, power:1, type:["recruit","power"]},
+  {name:"オープン・ドア・ルーム（内部通報制度）", target:["📖","🌈","⚖️"], cost:1, power:0, type:["shield"]},
+  {name:"タレントマネジメントシステムの活用", target:["📖","🌈","🌏"], cost:2, power:0, type:["recruit"]}
+];
+
+/* =========================================================
+   2. 共通ロジック（元コードと同一の計算規則）
+========================================================= */
+const iconIdx = ic => { const k = SORT_ORDER.indexOf(ic); return k < 0 ? 99 : k; };
+const sortIcons = arr => [...arr].sort((a,b)=>iconIdx(a)-iconIdx(b));
+
+// 名簿 = CHARACTERS_DB + 初期人財（元コードの統合処理と同じ）
+const ROSTER = CHARACTERS_DB.map(c=>({...c}));
+INITIAL_CHARACTERS.forEach(ic=>{
+  if(!ROSTER.some(c=>c.name===ic.name)) ROSTER.push({...ic, initial:true});
+});
+// ソート: ①アイコン数 → ②優先順位 → ③ベースパワー（元コードと同一）
+ROSTER.sort((a,b)=>{
+  if(a.icons.length !== b.icons.length) return a.icons.length - b.icons.length;
+  const pa = sortIcons(a.icons).map(iconIdx), pb = sortIcons(b.icons).map(iconIdx);
+  for(let i=0;i<pa.length;i++){ if(pa[i]!==pb[i]) return pa[i]-pb[i]; }
+  return a.base - b.base;
+});
+const INITIAL_IDS = ROSTER.map((c,i)=>c.initial?i:-1).filter(i=>i>=0);
+
+/**
+ * スコア計算（※元 Streamlit 版と完全に同一のルール）
+ * - チーム仕事力 = Σ(メンバーのbase + 対象属性が1つでも一致する施策のpower) + 社長2
+ * - 離職防止(shield)/採用(recruit)/昇進(promote) = 各type施策の対象属性の和集合
+ * - リスク = メンバーの属性のうち shield されていないもの / 0個なら SAFE
+ * - 合計コスト = 選択施策の cost 合計（表示のみ）
+ */
+function compute(activeIds, policyIds){
+  const pols = policyIds.map(i=>POLICIES_DB[i]);
+  const shields = new Set(), recruits = new Set(), promotes = new Set();
+  let totalCost = 0;
+  pols.forEach(p=>{
+    totalCost += p.cost;
+    if(p.type.includes("shield"))  p.target.forEach(t=>shields.add(t));
+    if(p.type.includes("recruit")) p.target.forEach(t=>recruits.add(t));
+    if(p.type.includes("promote")) p.target.forEach(t=>promotes.add(t));
+  });
+  const results = [];
+  let totalPower = 0;
+  activeIds.forEach(id=>{
+    const c = ROSTER[id];
+    let power = c.base;
+    pols.forEach(p=>{
+      if(c.icons.some(ic=>p.target.includes(ic))) power += p.power;
+    });
+    const risks = c.icons.filter(ic=>!shields.has(ic));
+    totalPower += power;
+    results.push({id, char:c, power, risks, safe:risks.length===0});
+  });
+  // 社長（力2・鉄壁）
+  totalPower += 2;
+  return {results, totalPower, totalCost, shields, recruits, promotes,
+          memberCount: results.length + 1};
+}
+
+/* =========================================================
+   3. 状態管理
+========================================================= */
+const LS_KEY = "dei-sim-state-v1";
+let state = {phase:"A", picks:[], active:[], policies:[], tab:"policy", polFilter:"all", memFilter:"all"};
+try{
+  const saved = JSON.parse(localStorage.getItem(LS_KEY));
+  if(saved && saved.phase) state = Object.assign(state, saved);
+}catch(e){}
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+
+/* =========================================================
+   4. 描画
+========================================================= */
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const attrSpan = ic => `<span class="attr">${ic}<small>${ATTR[ic].label}</small></span>`;
+const attrsHtml = icons => sortIcons(icons).map(attrSpan).join(" ");
+const iconsOnly = set => set.size ? sortIcons([...set]).join("") : `<span class="b-none">ー</span>`;
+
+function renderBoard(){
+  const b = $("board");
+  if(state.phase==="A"){
+    b.innerHTML = `
+      <div class="b-item" style="grid-column:1/-1;">
+        <div class="b-label">初期メンバー選択中</div>
+        <div class="b-value">${state.picks.length} / 2 名</div>
+      </div>`;
+    return;
+  }
+  const r = compute(state.active, state.policies);
+  b.innerHTML = `
+    <div class="b-item"><div class="b-label">🏆 チーム仕事力</div><div class="b-value big">${r.totalPower}</div></div>
+    <div class="b-item"><div class="b-label">👥 メンバー</div><div class="b-value">${r.memberCount}<span class="unit">名</span></div></div>
+    <div class="b-item"><div class="b-label">💰 合計コスト</div><div class="b-value">${r.totalCost}</div></div>
+    <div class="b-item"><div class="b-label">🛡️ 離職防止</div><div class="b-value b-icons">${iconsOnly(r.shields)}</div></div>
+    <div class="b-item"><div class="b-label">🔵 採用対象</div><div class="b-value b-icons">${iconsOnly(r.recruits)}</div></div>
+    <div class="b-item"><div class="b-label">🟢 昇進対象</div><div class="b-value b-icons">${iconsOnly(r.promotes)}</div></div>`;
+}
+
+function renderTabs(){
+  const t = $("tabs");
+  if(state.phase==="A"){ t.innerHTML=""; return; }
+  const defs = [["policy","🃏 施策"],["member","👥 メンバー"],["org","📊 組織"]];
+  t.innerHTML = defs.map(([k,label])=>{
+    let badge = "";
+    if(k==="policy" && state.policies.length) badge = ` (${state.policies.length})`;
+    if(k==="member") badge = ` (${state.active.length})`;
+    return `<button class="tab" role="tab" aria-selected="${state.tab===k}" data-tab="${k}">${label}${badge}</button>`;
+  }).join("");
+  t.querySelectorAll(".tab").forEach(btn=>{
+    btn.onclick = ()=>{ state.tab = btn.dataset.tab; save(); render(); };
+  });
+}
+
+function renderFilters(elId, current, onPick){
+  const el = $(elId);
+  const chips = [["all","すべて"], ...SORT_ORDER.map(ic=>[ic, `${ic} ${ATTR[ic].label}`])];
+  el.innerHTML = chips.map(([k,label])=>
+    `<button class="fchip" aria-pressed="${current===k}" data-f="${k}">${label}</button>`).join("");
+  el.querySelectorAll(".fchip").forEach(btn=>{
+    btn.onclick = ()=>onPick(btn.dataset.f);
+  });
+}
+
+function policyCard(p, idx, on){
+  const chips = p.type.map(t=>{
+    const label = t==="power" ? `力+${p.power}` : TYPE_LABEL[t];
+    return `<span class="chip ${t}">${label}</span>`;
+  }).join(" ");
+  return `
+  <button class="sel-card ${on?"on":""}" data-pol="${idx}" aria-pressed="${on}">
+    <span class="ckbox" aria-hidden="true">${on?"✓":""}</span>
+    <span class="sel-main">
+      <span class="sel-name">${esc(p.name)}</span>
+      <span class="sel-sub">
+        <span>対象: ${attrsHtml(p.target)}</span>
+        <span><span class="chip cost">コスト ${p.cost}</span> ${chips}</span>
+      </span>
+    </span>
+  </button>`;
+}
+
+function renderPolicies(){
+  const list = $("polList");
+  const f = state.polFilter;
+  renderFilters("polFilters", f, k=>{ state.polFilter=k; save(); renderPolicies(); });
+  let html = "";
+  POLICIES_DB.forEach((p,idx)=>{
+    if(f!=="all" && !p.target.includes(f)) return;
+    html += policyCard(p, idx, state.policies.includes(idx));
+  });
+  list.innerHTML = html || `<div class="note">該当する施策がありません</div>`;
+  list.querySelectorAll("[data-pol]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const idx = +btn.dataset.pol;
+      const at = state.policies.indexOf(idx);
+      if(at>=0) state.policies.splice(at,1); else state.policies.push(idx);
+      save(); renderBoard(); renderTabs(); renderPolicies();
+    };
+  });
+}
+
+function renderMembers(){
+  const r = compute(state.active, state.policies);
+  const note = $("memberNote");
+  if(r.recruits.size){
+    note.className = "note blue";
+    note.innerHTML = `🔓 追加採用できる属性: <b>${sortIcons([...r.recruits]).map(ic=>`${ic}${ATTR[ic].label}`).join("・")}</b><br>
+    <small>※ メンバーの<b>すべての属性</b>が採用対象に含まれる人だけ採用できます。タップで 参加⇔離脱 を切り替え。</small>`;
+  }else{
+    note.className = "note";
+    note.innerHTML = `⚠️ <span class="chip recruit">採用</span> タグ付きの施策を選ぶと、追加メンバーが採用できるようになります（参加中メンバーはいつでも表示されます）`;
+  }
+  const f = state.memFilter;
+  renderFilters("memFilters", f, k=>{ state.memFilter=k; save(); renderMembers(); });
+
+  let html = "";
+  ROSTER.forEach((c,idx)=>{
+    const isActive = state.active.includes(idx);
+    const recruitable = c.icons.every(ic=>r.recruits.has(ic));
+    if(!isActive && !recruitable) return;               // 元コードと同じ表示条件
+    if(f!=="all" && !c.icons.includes(f)) return;
+    const stateLabel = isActive
+      ? `<span class="state-join">✅ 参加中</span>`
+      : `<span class="state-can">🔓 採用可能</span>`;
+    html += `
+    <button class="sel-card ${isActive?"on":""}" data-mem="${idx}" aria-pressed="${isActive}">
+      <span class="ckbox" aria-hidden="true">${isActive?"✓":""}</span>
+      <span class="sel-main">
+        <span class="sel-name">${esc(c.name)}</span>
+        <span class="sel-sub">
+          <span>${attrsHtml(c.icons)}</span>
+          <span class="chip base">ベース力 ${c.base}</span>
+          ${stateLabel}
+        </span>
+      </span>
+    </button>`;
+  });
+  $("memList").innerHTML = html || `<div class="note">表示できるメンバーがいません（採用施策を選んでください）</div>`;
+  $("memList").querySelectorAll("[data-mem]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const idx = +btn.dataset.mem;
+      const at = state.active.indexOf(idx);
+      if(at>=0) state.active.splice(at,1); else state.active.push(idx);
+      save(); renderBoard(); renderTabs(); renderMembers();
+    };
+  });
+}
+
+function renderOrg(){
+  const r = compute(state.active, state.policies);
+  // サイコロ対応表
+  $("diceGrid").innerHTML =
+    `<div class="dice-cell"><span class="n">1</span>🎉 セーフ</div>` +
+    SORT_ORDER.map(ic=>`<div class="dice-cell"><span class="n">${ATTR[ic].dice}</span>${ic} ${ATTR[ic].label}</div>`).join("");
+
+  // 社長カード + メンバーカード
+  let html = `
+  <div class="m-card boss">
+    <div class="m-top"><span class="m-status">👑 社長</span><span class="m-power">力: 2</span></div>
+    <div class="m-name">社長</div>
+    <div class="m-foot">鉄壁（離職しません）</div>
+  </div>`;
+  r.results.forEach(res=>{
+    const cls = res.safe ? "safe" : "risk";
+    const status = res.safe ? "🛡️ SAFE" : "⚠️ RISK";
+    const foot = res.safe
+      ? "✅ 安泰"
+      : "サイコロで " + sortIcons(res.risks).map(ic=>`<span class="dice-tag">${ATTR[ic].dice} ${ic}</span>`).join(" ") + " が出たら離職";
+    html += `
+    <div class="m-card ${cls}">
+      <div class="m-top"><span class="m-status">${status}</span><span class="m-power">力: ${res.power}</span></div>
+      <div class="m-name">${esc(res.char.name)}　<span style="font-size:.85em; font-weight:600;">${attrsHtml(res.char.icons)}</span></div>
+      <div class="m-foot">${foot}</div>
+    </div>`;
+  });
+  $("orgList").innerHTML = html;
+
+  // 実行中施策
+  const pols = state.policies.map(i=>POLICIES_DB[i]);
+  $("polSecTitle").classList.toggle("hidden", pols.length===0);
+  $("orgPolicies").innerHTML = pols.map(p=>{
+    const chips = p.type.map(t=>{
+      const label = t==="power" ? `力+${p.power}` : TYPE_LABEL[t];
+      return `<span class="chip ${t}">${label}</span>`;
+    }).join(" ");
+    return `
+    <div class="m-card" style="border-left-color:var(--navy);">
+      <div class="m-top"><span class="sel-name">${esc(p.name)}</span><span class="chip cost">コスト ${p.cost}</span></div>
+      <div class="sel-sub"><span>対象: ${attrsHtml(p.target)}</span><span>${chips}</span></div>
+    </div>`;
+  }).join("") || `<div class="note">施策は選択されていません</div>`;
+}
+
+function renderPhaseA(){
+  $("pickCount").textContent = state.picks.length===2
+    ? "✅ 2名選択済み。下の「スタート」ボタンを押してください"
+    : `あと ${2-state.picks.length} 名選んでください（${state.picks.length}/2）`;
+  let html = "";
+  INITIAL_IDS.forEach(id=>{
+    const c = ROSTER[id];
+    const on = state.picks.includes(id);
+    html += `
+    <button class="sel-card ${on?"on":""}" data-init="${id}" aria-pressed="${on}">
+      <span class="ckbox" aria-hidden="true">${on?"✓":""}</span>
+      <span class="sel-main">
+        <span class="sel-name">${esc(c.name)}</span>
+        <span class="sel-sub"><span>${attrsHtml(c.icons)}</span><span class="chip base">ベース力 ${c.base}</span></span>
+      </span>
+    </button>`;
+  });
+  $("initList").innerHTML = html;
+  $("initList").querySelectorAll("[data-init]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = +btn.dataset.init;
+      const at = state.picks.indexOf(id);
+      if(at>=0){ state.picks.splice(at,1); }
+      else if(state.picks.length<2){ state.picks.push(id); }
+      else { return; } // 3名目は選べない
+      save(); renderBoard(); renderPhaseA();
+      $("btnStart").disabled = state.picks.length!==2;
+    };
+  });
+  $("btnStart").disabled = state.picks.length!==2;
+}
+
+function render(){
+  const isA = state.phase==="A";
+  $("phaseA").classList.toggle("hidden", !isA);
+  $("phaseB").classList.toggle("hidden", isA);
+  $("startBar").classList.toggle("hidden", !isA);
+  renderBoard(); renderTabs();
+  if(isA){ renderPhaseA(); return; }
+  ["policy","member","org"].forEach(k=>{
+    $("pane-"+k).classList.toggle("hidden", state.tab!==k);
+  });
+  if(state.tab==="policy") renderPolicies();
+  if(state.tab==="member") renderMembers();
+  if(state.tab==="org") renderOrg();
+}
+
+$("btnStart").onclick = ()=>{
+  if(state.picks.length!==2) return;
+  state.active = [...state.picks];
+  state.phase = "B"; state.tab = "policy";
+  save(); render();
+  window.scrollTo(0,0);
+};
+$("btnClearPol").onclick = ()=>{
+  if(state.policies.length && confirm("選択中の施策をすべて解除しますか？")){
+    state.policies = []; save(); render();
+  }
+};
+$("btnReset").onclick = ()=>{
+  if(confirm("ゲームをはじめから始めますか？（選択内容はすべてリセットされます）")){
+    state = {phase:"A", picks:[], active:[], policies:[], tab:"policy", polFilter:"all", memFilter:"all"};
+    save(); render(); window.scrollTo(0,0);
+  }
+};
+
+render();
+</script>
+</body>
+</html>
