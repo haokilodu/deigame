@@ -9,13 +9,13 @@
     --c-L:#EF9F26; --c-K:#3D7CC0; --c-G:#63B98A; --c-U:#E25368; --c-F:#7EC3E8;
     --c-L-d:#9C6100; --c-K-d:#2A5E97; --c-G-d:#2E7D54; --c-U-d:#B32A45; --c-F-d:#2678A8;
     --fx-recruit:#F4E32B; --fx-shield:#F5BCCD; --fx-promote:#8ED4F2;
-    --bg:#FBF5EC; --card:#FFFFFF; --ink:#3B3630; --sub:#7A7168;
+    --bg:#FBF5EC; --card:#FFFFFF; --ink:#332F29; --sub:#655C51;
     --line:#EADFCE; --focus:#1B6FC2;
     --safe:#2E8B57; --safe-bg:#EDF7EF; --risk:#D2405A; --risk-bg:#FDF0F2;
     --grad:linear-gradient(120deg,#EF9F26,#E25368);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html{font-size:17px;}
+  html{font-size:18px;}
   body{
     margin:0; background:var(--bg); color:var(--ink);
     font-family:'Hiragino Kaku Gothic ProN','ヒラギノ角ゴ ProN W3','Yu Gothic','Noto Sans JP',sans-serif;
@@ -59,48 +59,76 @@
   .cover-row .vbs{display:flex; gap:3px; align-items:center; flex-wrap:wrap;}
   .cover-row .vb{width:24px; height:24px;}
   .cover-none{font-size:.78rem; color:#B9AE9F; font-weight:700;}
-  /* ===== タブ ===== */
-  .tabs{display:flex; gap:8px; margin:10px 0 4px; padding-bottom:8px;}
+  /* ===== タブ（押しボタン風） ===== */
+  .tabs{display:flex; gap:10px; margin:12px 0 2px;}
   .tab{
-    flex:1; min-height:50px; border-radius:14px; border:2px solid var(--line);
-    background:var(--card); font-size:.95rem; font-weight:800; cursor:pointer; position:relative;
+    flex:1; min-height:62px; border-radius:16px;
+    border:2.5px solid #D9CBB4;
+    background:linear-gradient(#FFFFFF,#F4EBDC);
+    box-shadow:0 4px 0 #D9CBB4, 0 6px 10px rgba(160,110,60,.12);
+    font-size:1rem; font-weight:900; cursor:pointer; position:relative;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
+    transition:transform .05s ease, box-shadow .05s ease;
   }
-  .tab[aria-selected="true"]{background:var(--ink); border-color:var(--ink); color:#fff;}
+  .tab .ic{font-size:1.3rem; line-height:1.25;}
+  .tab .tl{display:flex; align-items:center; line-height:1.2;}
+  .tab:active{transform:translateY(3px); box-shadow:0 1px 0 #D9CBB4;}
+  .tab[aria-selected="true"]{
+    background:var(--grad); border-color:#C23B54; color:#fff;
+    box-shadow:0 4px 0 #A82B43, 0 6px 10px rgba(226,83,104,.3);
+  }
+  .tab[aria-selected="true"]::after{
+    content:""; position:absolute; bottom:-9px; left:50%; transform:translateX(-50%);
+    border:7px solid transparent; border-top-color:#C23B54;
+  }
   .tab .cnt{
-    display:inline-block; min-width:22px; padding:0 6px; margin-left:4px; border-radius:999px;
+    display:inline-block; min-width:22px; padding:0 6px; margin-left:5px; border-radius:999px;
     background:var(--c-U); color:#fff; font-size:.78rem; line-height:22px;
   }
-  .tab[aria-selected="true"] .cnt{background:#fff; color:var(--ink);}
+  .tab[aria-selected="true"] .cnt{background:#fff; color:var(--c-U);}
+  .tab-hint{
+    text-align:center; font-size:.8rem; font-weight:800; color:var(--sub);
+    padding:8px 0 8px; letter-spacing:.03em;
+  }
   .tab:focus-visible, button:focus-visible, input:focus-visible{outline:3px solid var(--focus); outline-offset:2px;}
 
   /* ===== 検索・フィルタ ===== */
   .toolrow{display:flex; gap:8px; margin:8px 0;}
   .search{
-    flex:1; min-height:46px; border:2px solid var(--line); border-radius:12px;
-    padding:8px 14px; font-size:.95rem; background:var(--card);
+    flex:1; min-height:50px; border:2px solid #D9CBB4; border-radius:14px;
+    padding:8px 14px; font-size:1rem; background:var(--card);
   }
-  .filters{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px;}
+  .filters{display:flex; flex-wrap:wrap; gap:7px; margin:6px 0 12px;}
   .fchip{
     display:flex; align-items:center; gap:5px;
-    border:2px solid var(--line); background:var(--card); border-radius:999px;
-    padding:6px 12px; font-size:.85rem; font-weight:700; cursor:pointer; min-height:40px;
+    border:2px solid #D9CBB4; background:var(--card); border-radius:999px;
+    padding:6px 13px; font-size:.9rem; font-weight:800; cursor:pointer; min-height:44px;
+    box-shadow:0 2px 0 #E5D9C5;
   }
   .fchip .vb{width:22px; height:22px;}
   .fchip[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink);}
 
   /* ===== カード共通 ===== */
   .sel-card{
-    width:100%; text-align:left; background:var(--card); border:2px solid var(--line);
-    border-radius:14px; padding:11px 12px; margin-bottom:9px; cursor:pointer;
-    display:flex; align-items:flex-start; gap:10px; min-height:58px;
+    width:100%; text-align:left; background:var(--card); border:2.5px solid #DACCB6;
+    border-radius:16px; padding:12px 13px; margin-bottom:10px; cursor:pointer;
+    display:flex; align-items:flex-start; gap:10px; min-height:64px;
+    box-shadow:0 2px 0 #E5D9C5;
     transition:transform .06s ease;
   }
+  .sel-card:hover{border-color:#C4B296;}
   .sel-card:active{transform:scale(.985);}
-  .sel-card.on{border-color:var(--c-U); background:#FDF2F4; box-shadow:0 0 0 1.5px var(--c-U) inset;}
+  .sel-card.on{border-color:var(--c-U); background:#FDF2F4; box-shadow:0 0 0 1.5px var(--c-U) inset, 0 2px 0 #E8C3CB;}
+  .pick-pill{
+    flex:0 0 auto; align-self:flex-start; margin-left:2px;
+    font-size:.78rem; font-weight:900; border-radius:999px; padding:6px 12px;
+    border:2px solid #B8AC9C; color:var(--sub); background:#fff; white-space:nowrap;
+  }
+  .sel-card.on .pick-pill{background:var(--c-U); border-color:var(--c-U); color:#fff;}
   .ckbox{
-    flex:0 0 26px; width:26px; height:26px; border:2.5px solid #B8AC9C; border-radius:8px;
+    flex:0 0 30px; width:30px; height:30px; border:2.5px solid #B8AC9C; border-radius:9px;
     display:flex; align-items:center; justify-content:center; margin-top:3px;
-    font-size:17px; color:#fff; background:#fff; font-weight:900;
+    font-size:19px; color:#fff; background:#fff; font-weight:900;
   }
   .sel-card.on .ckbox{background:var(--c-U); border-color:var(--c-U);}
   .sel-main{flex:1; min-width:0;}
@@ -108,7 +136,7 @@
   .sel-name{font-weight:800; font-size:1.02rem;}
   .kana{font-size:.72rem; color:var(--sub); font-weight:600;}
   .vrow{display:flex; gap:4px; align-items:center; margin-top:5px; flex-wrap:wrap;}
-  .vrow .vb{width:30px; height:30px;}
+  .vrow .vb{width:34px; height:34px;}
   .meta-row{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;}
   .pw{display:flex; align-items:center; gap:5px; font-size:.8rem; font-weight:800; color:var(--sub);}
   .pips{display:flex; gap:2.5px;}
@@ -141,8 +169,8 @@
     border-top:1px dashed var(--line); padding-top:6px;
   }
   .desc-toggle{
-    background:none; border:none; color:var(--c-K-d); font-size:.8rem; font-weight:800;
-    cursor:pointer; padding:4px 2px; margin-top:2px; min-height:32px;
+    background:none; border:none; color:var(--c-K-d); font-size:.82rem; font-weight:800;
+    cursor:pointer; padding:6px 2px; margin-top:2px; min-height:36px; text-decoration:underline;
   }
 
   /* ===== 組織ビュー ===== */
@@ -195,7 +223,7 @@
   }
   .start-picks{max-width:692px; margin:0 auto 6px; font-size:.85rem; font-weight:800; color:var(--sub); text-align:center;}
   .btn-primary{
-    display:block; width:100%; max-width:692px; margin:0 auto; min-height:54px;
+    display:block; width:100%; max-width:692px; margin:0 auto; min-height:58px;
     background:var(--grad); color:#fff; border:none; border-radius:16px;
     font-size:1.05rem; font-weight:900; cursor:pointer; letter-spacing:.02em;
     box-shadow:0 4px 12px rgba(226,83,104,.35);
@@ -340,6 +368,7 @@
   <div class="board-sticky">
     <div class="board" id="board" role="status" aria-label="スコアボード"></div>
     <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="tab-hint" id="tabHint"></div>
   </div>
 
   <!-- フェーズA -->
@@ -490,15 +519,16 @@ function filterChips(elId, cur, onPick){
   el.querySelectorAll(".fchip").forEach(b=>b.onclick=()=>onPick(b.dataset.f));
 }
 
-function memberCardHtml(m, idx, on, dataAttr, stateLabel){
+function memberCardHtml(m, idx, on, dataAttr, pill){
   return `
   <button class="sel-card ${on?"on":""}" ${dataAttr}="${idx}" aria-pressed="${on}">
     <span class="ckbox" aria-hidden="true">${on?"✓":""}</span>
     <span class="sel-main">
-      <span class="nm-row"><span class="sel-name">${esc(m.name)}</span><span class="kana">${esc(m.kana||"")}</span>${stateLabel||""}</span>
+      <span class="nm-row"><span class="sel-name">${esc(m.name)}</span><span class="kana">${esc(m.kana||"")}</span></span>
       <span class="vrow">${vbs(m.icons)}</span>
       <span class="meta-row"><span class="pw">仕事力 ${m.base} ${pips(m.base)}</span></span>
     </span>
+    <span class="pick-pill">${pill||(on?"✓ えらんだ":"えらぶ")}</span>
   </button>`;
 }
 
@@ -532,10 +562,14 @@ function renderBoard(){
 
 function renderTabs(){
   const t=$("tabs");
-  if(state.phase==="A"){ t.innerHTML=""; return; }
-  const defs=[["policy","🃏 施策",state.policies.length],["member","👥 メンバー",state.active.length],["org","📊 組織",null]];
-  t.innerHTML=defs.map(([k,label,cnt])=>
-    `<button class="tab" role="tab" aria-selected="${state.tab===k}" data-tab="${k}">${label}${cnt?`<span class="cnt">${cnt}</span>`:""}</button>`).join("");
+  if(state.phase==="A"){ t.innerHTML=""; $("tabHint").textContent=""; return; }
+  const defs=[["policy","🃏","施策",state.policies.length],["member","👥","メンバー",state.active.length],["org","📊","組織",null]];
+  t.innerHTML=defs.map(([k,ic,label,cnt])=>
+    `<button class="tab" role="tab" aria-selected="${state.tab===k}" data-tab="${k}">
+      <span class="ic" aria-hidden="true">${ic}</span>
+      <span class="tl">${label}${cnt?`<span class="cnt">${cnt}</span>`:""}</span>
+    </button>`).join("");
+  $("tabHint").textContent="▲ ボタンをタップすると画面が切りかわります";
   t.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{ state.tab=b.dataset.tab; save(); render(); });
 }
 
@@ -577,6 +611,7 @@ function policyCardHtml(p,idx,on){
       <span class="desc hidden" id="desc-${idx}">${esc(p.desc||"")}</span>
       ${p.desc?`<button class="desc-toggle" data-desc="${idx}" aria-expanded="false">▸ 説明を見る</button>`:""}
     </span>
+    <span class="pick-pill">${on?"✓ 実行中":"えらぶ"}</span>
   </button>`;
 }
 
@@ -632,8 +667,7 @@ function renderMembers(){
   });
   rows.sort((a,b)=>(b.isActive?1:0)-(a.isActive?1:0)); // 参加中を上に
   const html=rows.map(({m,idx,isActive})=>
-    memberCardHtml(m,idx,isActive,"data-mem",
-      isActive?`<span class="state-join">✅ 参加中</span>`:`<span class="state-can">🔓 採用できます</span>`)).join("");
+    memberCardHtml(m,idx,isActive,"data-mem", isActive?"✓ 参加中":"＋ 採用する")).join("");
   $("memList").innerHTML=html||`<div class="empty">表示できる人財がいません（「採用」効果の施策を選んでください）</div>`;
   $("memList").querySelectorAll("[data-mem]").forEach(b=>{
     b.onclick=()=>{
