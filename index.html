@@ -151,8 +151,15 @@
   .fx-shield{background:var(--fx-shield);}
   .fx-promote{background:var(--fx-promote);}
   .fx-boost{background:#fff; border-style:dashed;}
-  .coin{display:inline-flex; align-items:center; gap:3px; font-size:.78rem; font-weight:800; color:#8a6d1a;}
-  .coin svg{width:17px; height:17px;}
+  .org-btn{
+    display:block; width:100%; margin-top:10px; min-height:50px;
+    border:2.5px solid #D9CBB4; border-radius:14px; cursor:pointer;
+    background:linear-gradient(#FFFFFF,#F4EBDC); box-shadow:0 3px 0 #D9CBB4;
+    font-size:.95rem; font-weight:900;
+  }
+  .org-btn:active{transform:translateY(2px); box-shadow:0 1px 0 #D9CBB4;}
+  details.how{margin:10px 0 2px;}
+  details.how p{font-size:.85rem; color:var(--sub); margin:6px 0 2px; line-height:1.7;}
 
   .note{
     background:#FFF6DF; border:1.5px solid #EBD08F; border-radius:12px;
@@ -377,27 +384,24 @@
   <!-- フェーズB -->
   <section id="phaseB" class="hidden">
     <div id="pane-policy" role="tabpanel">
+      <details class="acc how">
+        <summary>❓ この画面でできること</summary>
+        <p>実施した施策を選択できます。施策の効果で、人財を「採用」できるようになったり、メンバーが「離職防止」で守られたり、「昇進」の対象になったり、仕事力が上がったりします。もう一度タップすると施策をやめられます。</p>
+      </details>
       <div class="toolrow"><input class="search" id="searchP" type="search" placeholder="🔍 施策名で検索" aria-label="施策名で検索"></div>
       <div class="filters" id="filtersP"></div>
       <div id="polList"></div>
     </div>
 
     <div id="pane-member" role="tabpanel" class="hidden">
+      <details class="acc how">
+        <summary>❓ この画面でできること</summary>
+        <p>採用した人財を選択できます。「採用」効果を持つ施策を選ぶと、スカウトできる人財が増えます。タップで採用、もう一度タップで離脱です。</p>
+      </details>
       <div class="note" id="memberNote"></div>
       <div class="toolrow"><input class="search" id="searchM" type="search" placeholder="🔍 名前で検索" aria-label="名前で検索"></div>
       <div class="filters" id="filtersM"></div>
       <div id="memList"></div>
-    </div>
-
-    <div id="pane-org" role="tabpanel" class="hidden">
-      <details class="acc">
-        <summary>🎲 サイコロの出目対応表（離職判定）</summary>
-        <div class="dice-grid" id="diceGrid"></div>
-      </details>
-      <h2 class="sec">いまの組織</h2>
-      <div id="orgList"></div>
-      <h2 class="sec" id="polSecTitle">実行中の施策</h2>
-      <div id="orgPolicies"></div>
     </div>
 
     <div class="toolbar">
@@ -410,6 +414,21 @@
 <div class="startbar hidden" id="startBar">
   <div class="start-picks" id="startPicks"></div>
   <button class="btn-primary" id="btnStart" disabled>この2人でスタート！</button>
+</div>
+
+<div class="modal-bg hidden" id="orgModal" role="dialog" aria-modal="true" aria-label="いまの組織">
+  <div class="modal">
+    <h3>📊 いまの組織</h3>
+    <p style="font-size:.83rem; color:var(--sub); margin:2px 0 10px;">施策とメンバーの選択の結果が、この組織にあらわれます。</p>
+    <details class="acc">
+      <summary>🎲 サイコロの出目対応表（離職判定）</summary>
+      <div class="dice-grid" id="diceGrid"></div>
+    </details>
+    <div id="orgList"></div>
+    <h3 id="polSecTitle">実行中の施策</h3>
+    <div id="orgPolicies"></div>
+    <button class="modal-close" id="btnCloseOrg">とじる</button>
+  </div>
 </div>
 
 <div class="modal-bg hidden" id="helpModal" role="dialog" aria-modal="true" aria-label="あそびかた">
@@ -490,6 +509,7 @@ function compute(activeIds, policyIds){
 const LS="dei-sim-v2";
 let state={phase:"A", picks:[], active:[], policies:[], tab:"policy", fA:"all", fP:"all", fM:"all"};
 try{ const s=JSON.parse(localStorage.getItem(LS)); if(s&&s.phase) state=Object.assign(state,s); }catch(e){}
+if(state.tab==="org") state.tab="policy";
 const save=()=>{ try{ localStorage.setItem(LS, JSON.stringify(state)); }catch(e){} };
 let q={A:"",P:"",M:""}; // 検索語（保存しない）
 
@@ -545,25 +565,26 @@ function renderBoard(){
     <div class="b-main">
       <div class="b-power"><div class="lab">🏆 チーム仕事力</div><div class="val">${r.totalPower}</div></div>
       <div class="b-cell"><div class="lab">👥 メンバー</div><div class="val">${r.memberCount}<span class="unit">人</span></div></div>
-      <div class="b-cell"><div class="lab">🪙 コイン</div><div class="val">${r.coins}</div></div>
     </div>
     <div class="b-cover">
       <div class="cover-row">${fxChip("shield")} ${cover("shields")}</div>
       <div class="cover-row">${fxChip("recruit")} ${cover("recruits")}</div>
       <div class="cover-row">${fxChip("promote")} ${cover("promotes")}</div>
-    </div>`;
+    </div>
+    <button class="org-btn" id="btnOrg">📊 いまの組織をくわしく見る</button>`;
+  $("btnOrg").onclick=()=>{ renderOrg(); $("orgModal").classList.remove("hidden"); };
 }
 
 function renderTabs(){
   const t=$("tabs");
   if(state.phase==="A"){ t.innerHTML=""; $("tabHint").textContent=""; return; }
-  const defs=[["policy","🃏","施策",state.policies.length],["member","👥","メンバー",state.active.length],["org","📊","組織",null]];
+  const defs=[["policy","🃏","施策",state.policies.length],["member","👥","メンバー",state.active.length]];
   t.innerHTML=defs.map(([k,ic,label,cnt])=>
     `<button class="tab" role="tab" aria-selected="${state.tab===k}" data-tab="${k}">
       <span class="ic" aria-hidden="true">${ic}</span>
       <span class="tl">${label}${cnt?`<span class="cnt">${cnt}</span>`:""}</span>
     </button>`).join("");
-  $("tabHint").textContent="▲ ボタンをタップすると画面が切りかわります";
+  $("tabHint").textContent="▲ タップで「施策」と「メンバー」の画面が切りかわります";
   t.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{ state.tab=b.dataset.tab; save(); render(); });
 }
 
@@ -599,7 +620,7 @@ function policyCardHtml(p,idx,on){
   <button class="sel-card ${on?"on":""}" data-pol="${idx}" aria-pressed="${on}">
     <span class="sel-main">
       <span class="nm-row"><span class="sel-name">${esc(p.name)}</span></span>
-      <span class="vrow">${vbs(p.icons)} <span style="margin-left:4px">${coinHtml(p.cost)}</span></span>
+      <span class="vrow">${vbs(p.icons)}</span>
       <span class="meta-row">${chips}</span>
       <span class="desc hidden" id="desc-${idx}">${esc(p.desc||"")}</span>
       ${p.desc?`<button class="desc-toggle" data-desc="${idx}" aria-expanded="false">▸ 説明を見る</button>`:""}
@@ -706,7 +727,7 @@ function renderOrg(){
   $("polSecTitle").classList.toggle("hidden",pols.length===0);
   $("orgPolicies").innerHTML=pols.map(p=>`
     <div class="m-card" style="border-left-color:var(--c-K);">
-      <div class="m-top"><span class="sel-name">${esc(p.name)}</span>${coinHtml(p.cost)}</div>
+      <div class="m-top"><span class="sel-name">${esc(p.name)}</span></div>
       <div class="vrow">${vbs(p.icons)}</div>
       <div class="meta-row" style="margin-top:6px">${p.fx.map(k=>fxChip(k)).join(" ")}${p.boost>0?` <span class="fx fx-boost">💪 仕事力+${p.boost}</span>`:""}</div>
     </div>`).join("")||`<div class="empty">施策はまだ選ばれていません</div>`;
@@ -719,10 +740,9 @@ function render(){
   $("startBar").classList.toggle("hidden",!isA);
   renderBoard(); renderTabs();
   if(isA){ renderPhaseA(); return; }
-  ["policy","member","org"].forEach(k=>$("pane-"+k).classList.toggle("hidden",state.tab!==k));
+  ["policy","member"].forEach(k=>$("pane-"+k).classList.toggle("hidden",state.tab!==k));
   if(state.tab==="policy") renderPolicies();
   if(state.tab==="member") renderMembers();
-  if(state.tab==="org") renderOrg();
 }
 
 /* あそびかたモーダル */
@@ -737,6 +757,8 @@ function buildHelp(){
 
 /* イベント */
 $("btnHelp").onclick=()=>$("helpModal").classList.remove("hidden");
+$("btnCloseOrg").onclick=()=>$("orgModal").classList.add("hidden");
+$("orgModal").onclick=e=>{ if(e.target===$("orgModal")) $("orgModal").classList.add("hidden"); };
 $("btnCloseHelp").onclick=()=>$("helpModal").classList.add("hidden");
 $("helpModal").onclick=e=>{ if(e.target===$("helpModal")) $("helpModal").classList.add("hidden"); };
 $("btnStart").onclick=()=>{
