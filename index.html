@@ -110,27 +110,22 @@
 
   /* ===== カード共通 ===== */
   .sel-card{
-    width:100%; text-align:left; background:var(--card); border:2.5px solid #DACCB6;
-    border-radius:16px; padding:12px 13px; margin-bottom:10px; cursor:pointer;
+    position:relative; width:100%; text-align:left; background:var(--card); border:2.5px solid #DACCB6;
+    border-radius:16px; padding:12px 14px; margin-bottom:10px; cursor:pointer;
     display:flex; align-items:flex-start; gap:10px; min-height:64px;
     box-shadow:0 2px 0 #E5D9C5;
     transition:transform .06s ease;
   }
   .sel-card:hover{border-color:#C4B296;}
   .sel-card:active{transform:scale(.985);}
-  .sel-card.on{border-color:var(--c-U); background:#FDF2F4; box-shadow:0 0 0 1.5px var(--c-U) inset, 0 2px 0 #E8C3CB;}
-  .pick-pill{
-    flex:0 0 auto; align-self:flex-start; margin-left:2px;
-    font-size:.78rem; font-weight:900; border-radius:999px; padding:6px 12px;
-    border:2px solid #B8AC9C; color:var(--sub); background:#fff; white-space:nowrap;
+  .sel-card.on{border:3px solid var(--c-U); background:#FDF0F3; box-shadow:0 2px 0 #E8C3CB;}
+  .on-mark{
+    position:absolute; top:-3px; right:-3px; width:36px; height:36px;
+    border-radius:0 16px 0 16px; background:var(--c-U); color:#fff;
+    font-size:21px; font-weight:900; display:none; align-items:center; justify-content:center;
   }
-  .sel-card.on .pick-pill{background:var(--c-U); border-color:var(--c-U); color:#fff;}
-  .ckbox{
-    flex:0 0 30px; width:30px; height:30px; border:2.5px solid #B8AC9C; border-radius:9px;
-    display:flex; align-items:center; justify-content:center; margin-top:3px;
-    font-size:19px; color:#fff; background:#fff; font-weight:900;
-  }
-  .sel-card.on .ckbox{background:var(--c-U); border-color:var(--c-U);}
+  .sel-card.on .on-mark{display:flex;}
+  h3.grp{font-size:.92rem; font-weight:900; color:var(--sub); margin:16px 2px 8px;}
   .sel-main{flex:1; min-width:0;}
   .nm-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
   .sel-name{font-weight:800; font-size:1.02rem;}
@@ -519,16 +514,15 @@ function filterChips(elId, cur, onPick){
   el.querySelectorAll(".fchip").forEach(b=>b.onclick=()=>onPick(b.dataset.f));
 }
 
-function memberCardHtml(m, idx, on, dataAttr, pill){
+function memberCardHtml(m, idx, on, dataAttr){
   return `
   <button class="sel-card ${on?"on":""}" ${dataAttr}="${idx}" aria-pressed="${on}">
-    <span class="ckbox" aria-hidden="true">${on?"✓":""}</span>
     <span class="sel-main">
       <span class="nm-row"><span class="sel-name">${esc(m.name)}</span><span class="kana">${esc(m.kana||"")}</span></span>
       <span class="vrow">${vbs(m.icons)}</span>
       <span class="meta-row"><span class="pw">仕事力 ${m.base} ${pips(m.base)}</span></span>
     </span>
-    <span class="pick-pill">${pill||(on?"✓ えらんだ":"えらぶ")}</span>
+    <span class="on-mark" aria-hidden="true">✓</span>
   </button>`;
 }
 
@@ -603,7 +597,6 @@ function policyCardHtml(p,idx,on){
   const chips=p.fx.map(k=>fxChip(k)).join(" ")+(p.boost>0?` <span class="fx fx-boost">💪 仕事力+${p.boost}</span>`:"");
   return `
   <button class="sel-card ${on?"on":""}" data-pol="${idx}" aria-pressed="${on}">
-    <span class="ckbox" aria-hidden="true">${on?"✓":""}</span>
     <span class="sel-main">
       <span class="nm-row"><span class="sel-name">${esc(p.name)}</span></span>
       <span class="vrow">${vbs(p.icons)} <span style="margin-left:4px">${coinHtml(p.cost)}</span></span>
@@ -611,7 +604,7 @@ function policyCardHtml(p,idx,on){
       <span class="desc hidden" id="desc-${idx}">${esc(p.desc||"")}</span>
       ${p.desc?`<button class="desc-toggle" data-desc="${idx}" aria-expanded="false">▸ 説明を見る</button>`:""}
     </span>
-    <span class="pick-pill">${on?"✓ 実行中":"えらぶ"}</span>
+    <span class="on-mark" aria-hidden="true">✓</span>
   </button>`;
 }
 
@@ -665,9 +658,12 @@ function renderMembers(){
     if(!hit(m,q.M)) return;
     rows.push({m,idx,isActive,can});
   });
-  rows.sort((a,b)=>(b.isActive?1:0)-(a.isActive?1:0)); // 参加中を上に
-  const html=rows.map(({m,idx,isActive})=>
-    memberCardHtml(m,idx,isActive,"data-mem", isActive?"✓ 参加中":"＋ 採用する")).join("");
+  const act=rows.filter(r=>r.isActive), rec=rows.filter(r=>!r.isActive);
+  let html="";
+  if(act.length) html+=`<h3 class="grp">✓ いまのメンバー ${act.length}人（タップで外れます）</h3>`
+    +act.map(r=>memberCardHtml(r.m,r.idx,true,"data-mem")).join("");
+  if(rec.length) html+=`<h3 class="grp">🔍 スカウトできる人財 ${rec.length}人（タップで採用）</h3>`
+    +rec.map(r=>memberCardHtml(r.m,r.idx,false,"data-mem")).join("");
   $("memList").innerHTML=html||`<div class="empty">表示できる人財がいません（「採用」効果の施策を選んでください）</div>`;
   $("memList").querySelectorAll("[data-mem]").forEach(b=>{
     b.onclick=()=>{
