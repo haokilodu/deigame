@@ -656,7 +656,7 @@ let state={phase:"A", picks:[], active:[], policies:[], tab:"policy", fA:"all", 
            tried:[], order:null,
            /* おかね。debt は借入の元本で、ルール上つねに偶数（2の倍数）に保たれる。
               返済に必要なコイン数は debt*1.5 ＝ debt/2*3 で、元本が偶数なので必ず整数になる。
-              期（ターン）の管理は持たない。ターン管理はニアカリ側の担当。 */
+              期（ターン）の管理はこのアプリでは持たない。 */
            debt:0, debtLog:[]};
 try{ const s=JSON.parse(sessionStorage.getItem(LS)); if(s&&s.phase) state=Object.assign(state,s); }catch(e){}
 if(state.tab==="org") state.tab="policy";
